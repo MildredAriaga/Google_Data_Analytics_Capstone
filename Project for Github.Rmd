@@ -1,0 +1,259 @@
+---
+title: "Google Data Analytics Capstone"
+author: "ARIAGA MILDRED"
+date: "8/25/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data Analytics CaseStudy
+#### How can a wellness technology company play it smart?
+
+This is an optional Capstone project in partial fulfillment for the Google Data Analytics certification. this case study follows the six steps of data analysis process: **Ask**,**Prepare**,**Process**,**Analyse**,**Share** and **Act**.
+
+
+## Case Senerio
+
+
+I am a junior data analyst working on the marketing analyst team at Bellabeat, a high-tech manufacturer of health-focused products for woman. Bellabeat has the goal to become a larger player the global smart device market,they intend to do this by analyzing smart device fitness device. I am asked to focus on one of Bellabeat's products and analyze smart device data to gain insight into how customers are using their smart devices. These insights will help guide marketing strategy for the company.
+
+
+## 1. ASK
+### Business Task
+
+
+Analyze data from FitBit fitness tracker, a non-Bellabeat smart product, to gain insights into consumer's trends. This trends are to be applied to one Bellabeat product to help guide marketing strategy for Bellabeat to grow as a global player.
+
+### Stakeholders
+**Primary Stakeholders**: Urska Srska, Sando Mur and every member of the executive team.
+
+**Secondary Stakeholders**: Bellabeat marketing analytics team.
+
+
+## 2. PREPARE
+### Data source
+
+
+The data used was taken from the following public data set: FitBit Fitness Tracker Data from Mobius. The data is publicly available on Kaggle and stored in 18 csv files.The data collected include Physical activity, Heart rate, Sleep monitoring, Daily activities, Weigh, Calorie burned, Distance and Steps.
+
+### Limitations of the Data set
+
+A good data set should Reliable,Original,Comprehensive,Current and Cited (ROCCC). The FitBit fitness Tracker Data set does not have the aforementioned qualities.
+
+* It is not Reliable because it has the sample size of only 30 respondents, which is not large enough subject to get accurate insights. Moreover, some of respondents could be men, which are not Bellabet's target customer base.
+
+* It is not Original because it is from a third party provider (Amazon Mechanical Turk)
+
+* Although the data parameters match most of Bellabeat products parameters, the data set is still not comprehensive. Data such as sex,height,age e.t.c not present in the data set would have been useful to create a more accurate analysis.
+
+* The data is not also current. The data is from 2016 (6 years ago), and likely does not reflect current smart device usage, hence it is outdated.
+
+* Data is collected from a third party. It is not cited.
+
+
+## 3. PROCESS
+#### Preparing work environment 
+
+I will be using R for the data cleaning, transformation and visualization. The following packages were installed:
+```{r installing packages, eval=FALSE}
+install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+install.packages("lubridate", repos = "http://cran.us.r-project.org")
+install.packages("dplyr", repos = "http://cran.us.r-project.org")
+install.packages("ggplot2",repos= "http://cran.us.r-project.org")
+install.packages("tidyr",repos = "http://cran.us.r-project.org")
+install.packages("here",repos="http://cran.us.r-project.org")
+install.packages("skimr", repos = "http://cran.us.r-project.org")
+install.packages("janitor", repos = "http://cran.us.r-project.org")
+install.packages("readr", repos = "http://cran.us.r-project.org")
+install.packages("scales", repos = "http://cran.us.r-project.org")
+```
+
+loading Packages
+```{r loading packages, eval=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(here)
+library(skimr)
+library(janitor)
+library(readr)
+library(scales)
+```
+
+#### Importing Data set
+
+I will be using the daily activity data set.
+```{r Importing data, echo=TRUE}
+daily_activity <- read_csv("dailyActivity_merged.csv")
+```
+
+#### Verifying the data
+
+```{r verify data, eval=FALSE}
+head(daily_activity)
+colnames(daily_activity)
+glimpse(daily_activity)
+str(daily_activity)
+```
+
+#### Cleaning the Data
+
+Looking for null values
+```{r  Null value, echo=TRUE}
+is.null(daily_activity)
+```
+
+Counting the unique IDs to check if they are up to 30.
+```{r Count, echo=TRUE}
+n_distinct(daily_activity$Id)
+```
+
+#### Results
+
+* No null or missing values.
+
+* Data has 15 columns and 940 rows.
+
+* Activity date is classified as Character.
+
+* The unique IDs are 33 instead of 30. It means that some users may have more than 1 IDs.
+
+
+#### Transforming Data 
+
+Activitydate is in character format and needs to be converted to datetime type.
+```{r Converting to date, echo=TRUE}
+daily_activity$ActivityDate=as.POSIXct(daily_activity$ActivityDate, format="%m/%d/%Y", tz=Sys.timezone())
+daily_activity$date <- format(daily_activity$ActivityDate, format = "%m/%d/%y")
+daily_activity$ActivityDate=as.Date(daily_activity$ActivityDate, format="%m/%d/%Y", tz=Sys.timezone())
+daily_activity$date=as.Date(daily_activity$date, format="%m/%d/%Y")
+
+class(daily_activity$ActivityDate)
+
+```
+
+Create new column 'Week_day' using the activitydate as reference.
+```{r week_day, echo=TRUE}
+daily_activity$week_day <- weekdays(daily_activity$ActivityDate)
+
+```
+
+Create new column 'Totalmins' which will be the total minutes users were logged in, it will be gotten by adding very active minutes,fairly active minutes,lightly active minutes,and sedentary minutes.
+```{r Total Mins, echo=TRUE}
+daily_activity$Totalmins <- daily_activity$VeryActiveMinutes + daily_activity$FairlyActiveMinutes + daily_activity$LightlyActiveMinutes + daily_activity$SedentaryMinutes
+
+```
+
+Create new column 'Totalhrs' by converting Totalmins to hours.
+```{r Total hrs, echo=TRUE}
+daily_activity$Totalhrs <- daily_activity$Totalmins/60
+
+```
+
+
+## 4. ANALYSE
+
+
+At this stage I will be performing some calculations to get insights and spot trends from the data. First,I will condense the dataframe into only the columns that i want to use for more focused analysis.
+```{r df_activity, echo=TRUE}
+df_activity <- daily_activity %>% 
+  select(Id,week_day,TotalSteps, Calories, VeryActiveMinutes, FairlyActiveMinutes, LightlyActiveMinutes, SedentaryMinutes, Totalmins,Totalhrs) 
+head(df_activity)
+```
+
+Performing calculations.
+```{r Summary, echo=TRUE}
+summary(df_activity)
+```
+
+##### Interprinting findings
+
+* The average total steps by the users is 7,638 steps which is not adequate. An average adult female has to aim at least 10,000 steps per day, according to Medical News Today article.
+
+* The average minutes for very active is 21.16, for fairly active is 13.56, for lightly active is 192.8 and for sedentary is 991.2. Sedentary users logins makes up for 81% of total average minutes.
+
+
+## 5. SHARE
+
+
+I will sharing insights  using data visualization.
+
+```{r Total logins, echo=TRUE}
+df_activity$week_day <- factor(df_activity$week_day, levels = c(
+  "Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday") )
+
+ggplot(data=df_activity)+geom_bar(mapping = aes(x=week_day,color=Totalhrs),fill= "blue")+
+  labs(x = "Week day", y="Frequency",title ="Total Logins Across the Week") 
+```
+
+The bar chart shows that there are more logins during the midweek than weekends. This could be as a result of a number of reasons.
+
+
+```{r Calories burned Vs Total steps, echo=TRUE}
+ggplot(data=df_activity)+geom_point(mapping =aes(x=TotalSteps, y=Calories), color="red" )+
+  geom_smooth(mapping =aes(x=TotalSteps, y=Calories,))+
+  labs(title = "Calories burned Vs Total steps" )
+```
+
+There is a positive correlation between total steps taken & calories burned. The more steps taken, the more calories burned.
+
+
+```{r Calories burned for every hour logged, echo=TRUE}
+ggplot(data=df_activity)+geom_point(mapping =aes(x=Totalhrs, y=Calories) )+
+  geom_smooth(mapping =aes(x=Totalhrs, y=Calories,))+
+  labs(title = "Calories burned for every Hour logged")
+```
+
+There is a weak positive correlation between hours logged and calories burned whereby the increase in the hours logged in does not translate to more calories being burned.
+
+
+```{r Percentage of activity in minutes, echo=TRUE}
+VeryActiveMin <- sum(df_activity$VeryActiveMinutes)
+FairlyActiveMin <- sum(df_activity$FairlyActiveMinutes)
+LightlyActiveMin <- sum(df_activity$LightlyActiveMinutes)
+SedentaryMin <- sum(df_activity$SedentaryMinutes)
+TotalMin <- VeryActiveMin + FairlyActiveMin + LightlyActiveMin + SedentaryMin
+
+slices <- c(VeryActiveMin,FairlyActiveMin,LightlyActiveMin,SedentaryMin)
+lbls <- c("VeryActive","FairlyActive","LightlyActive","Sedentary")
+pct <- round(slices/sum(slices)*100)
+```
+![Percentage of Active Minutes](C:\Users\G-L S\Documents\Percentage of Activite Minutes.png)
+
+
+From the pie chart, it is very clear that the users are not active enough, as 81.3% of the activity time for the entire month was sedentary for the average user. The app is rerely been used to track fitness (i.e exercises) as per the minor percentage of fairly active active activity (1.1%) and very active activity (1.7%). For a fitness tracking app, this is not good to see.
+
+
+## 5. ACT
+#### Trends Identified.
+
+* Users mostly use the FitBit app to track sedentary activities (81.3%) and not using it for tracking their health habits. better put, it can be said that users are not usually active.
+
+* Users tend to track their activities more during weekdays compared to weekends.
+
+* On average, the total staps per day for the users was 7,638, which is almost 2,500 steps below the suggested minimum total total steps per day.
+
+
+#### How could this trends apply to Bellabeat customers?
+
+The trends found from the FitBit data can very well be applied to Bellabeat customers because just like FitBit, Bellabeat company develops products focused on providing women with their health and fitness data to help them keep track of their habits and make healthier decisions.
+
+
+#### Recommendations.
+
+* Bellabeat marketing team can encourage users by educating and equipping them with knowledge about fitness benefits on the bellabeat app.
+
+* Bellabeat could offer incentives for consistent tracking, they could organise in-app competitions between users and offer them points.
+
+* Since users rarely login on weekdays, Bellabeat app can prompt notification to encourage and remind users to exercise.
+
+* Bellabeat app should have a BMR or TDEE calculator built in, this will help to obtain more data such as  sex, age, weight, height, e.t.c for more detailed and accurate analysis. 
+
+
+**Thank You**
+
