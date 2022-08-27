@@ -4,7 +4,11 @@ author: "ARIAGA MILDRED"
 date: "8/25/2022"
 output: html_document
 ---
-
+knit: (function(input_file, encoding) {
+    out_dir <- 'docs';
+    rmarkdown::render(input_file,
+      encoding=encoding,
+      output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -58,7 +62,7 @@ A good data set should Reliable,Original,Comprehensive,Current and Cited (ROCCC)
 #### Preparing work environment 
 
 I will be using R for the data cleaning, transformation and visualization. The following packages were installed:
-```{r installing packages, eval=FALSE}
+```{r installing packages, eval=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
 install.packages("tidyverse", repos = "http://cran.us.r-project.org")
 install.packages("lubridate", repos = "http://cran.us.r-project.org")
 install.packages("dplyr", repos = "http://cran.us.r-project.org")
